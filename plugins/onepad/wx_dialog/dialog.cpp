@@ -20,7 +20,7 @@
 #include "dialog.h"
 #include <array>
 
-static std::string KeyName(int pad, int key, int keysym)
+static std::string KeyName(int keysym)
 {
     // Mouse
     if (keysym < 10)
@@ -43,18 +43,7 @@ static std::string KeyName(int pad, int key, int keysym)
     return std::string(XKeysymToString(keysym));
 }
 
-// Constructor of Dialog
-Dialog::Dialog()
-    : wxDialog(NULL,                                  // Parent
-               wxID_ANY,                              // ID
-               _T("OnePad configuration"),            // Title
-               wxDefaultPosition,                     // Position
-               wxSize(DEFAULT_WIDTH, DEFAULT_HEIGHT), // Width + Lenght
-               // Style
-               wxSYSTEM_MENU |
-                   wxCAPTION |
-                   wxCLOSE_BOX |
-                   wxCLIP_CHILDREN)
+void Dialog::create_page(int i, wxNotebook *m_tab_gamepad)
 {
     /*
      * Define the size and the position of each button :
@@ -64,6 +53,8 @@ Dialog::Dialog()
 
     padding[PAD_L1]         = { 218, 28,  50, 175 };
     padding[PAD_L2]         = { 218, 28,  50, 104 };
+    padding[PAD_L3]         = { 218, 28, 268, 641 };
+
     padding[PAD_R1]         = { 218, 28, 726, 175 };
     padding[PAD_R2]         = { 218, 28, 726, 104 };
     padding[PAD_R3]         = { 218, 28, 498, 641 };
@@ -90,8 +81,6 @@ Dialog::Dialog()
     padding[PAD_L_RIGHT]    = { 109, 25, 377, 552 };
     padding[PAD_L_LEFT]     = { 109, 25, 268, 552 };
 
-    padding[PAD_L3]         = { 218, 28, 268, 641 };
-
     // Right Joystick
     padding[PAD_R_UP]       = { 100, 25, 555, 527 };
     padding[PAD_R_DOWN]     = { 100, 25, 555, 577 };
@@ -103,60 +92,94 @@ Dialog::Dialog()
     padding[Gamepad_config] = { 180, 28,  50, 585 };
     padding[Set_all]        = { 180, 28, 764, 585 };
 
-    padding[Apply]          = {  70, 28, 833, 642 };
-    padding[Ok]             = {  70, 28, 913, 642 };
-    padding[Cancel]         = {  70, 28, 753, 642 };
+    // Tabs panels
+    m_pan_page[i] = new wxPanel(
+        m_tab_gamepad,
+        wxID_ANY,
+        wxDefaultPosition,
+        wxDefaultSize);
+
+    // New page creation
+    m_tab_gamepad->AddPage(m_pan_page[i], wxString::Format(_("Gamepad %i"), i));
+
+    wxBoxSizer *note_box = new wxBoxSizer( wxHORIZONTAL );
+
+    // Panel for the actual gamepad picture and gui.
+    m_pan_tabs[i] = new opPanel(
+        m_pan_page[i],
+        wxID_ANY,
+        wxDefaultPosition,
+        wxSize(DEFAULT_WIDTH, DEFAULT_HEIGHT));
+
+    // Create a new ListCtrl
+    btn_list[i] = new wxListCtrl(m_pan_page[i], wxID_ANY, wxDefaultPosition, wxSize(150, DEFAULT_HEIGHT), wxLC_REPORT);
+
+    // Set up a list for our controls. Only shows keys at the moment.
+    // To do: add buttons below it. Clear all, Delete, and probably move "Set All Buttons" there.
+    btn_list[i]->InsertColumn(0, _T("Input"), wxLIST_FORMAT_LEFT, -1);
+    btn_list[i]->InsertColumn(1, _T("Mapped To"), wxLIST_FORMAT_LEFT, -1);
+
+    for (int j = 0; j < BUTTONS_LENGTH; ++j)
+    {
+        // Gamepad buttons
+        m_bt_gamepad[i][j] = new wxButton(
+            m_pan_tabs[i],                         // Parent
+            wxID_HIGHEST + j + 1,                  // ID
+            _T("Undefined"),                       // Label
+            wxPoint(padding[j][2], padding[j][3]), // Position
+            wxSize(padding[j][0], padding[j][1])   // Size
+            );
+    }
+
+    // Set the other buttons labels
+    m_bt_gamepad[i][JoyL_config]->SetLabel(_T("&Left Joystick Config"));
+    m_bt_gamepad[i][JoyR_config]->SetLabel(_T("&Right Joystick Config"));
+    m_bt_gamepad[i][Gamepad_config]->SetLabel(_T("&Gamepad Configuration"));
+    m_bt_gamepad[i][Set_all]->SetLabel(_T("&Set All Buttons"));
+    m_bt_gamepad[i][Analog]->Disable();
+
+    note_box->Add(btn_list[i], 0, wxALL | wxEXPAND, 5);
+    note_box->Add(m_pan_tabs[i], 0, wxALL | wxEXPAND, 5);
+
+    m_pan_page[i]->SetSizer(note_box);
+}
+
+// Constructor of Dialog
+Dialog::Dialog()
+    : wxDialog(NULL,                                  // Parent
+               wxID_ANY,                              // ID
+               _T("OnePad configuration"),            // Title
+               wxDefaultPosition,                     // Position
+               wxDefaultSize /*wxSize(DEFAULT_WIDTH, DEFAULT_HEIGHT)*/, // Width + Length
+               // Style
+               wxSYSTEM_MENU |
+                   wxCAPTION |
+                   wxCLOSE_BOX |
+                   wxCLIP_CHILDREN)
+{
+
+    wxBoxSizer *main_box = new wxBoxSizer( wxVERTICAL );
 
     // create a new Notebook
     m_tab_gamepad = new wxNotebook(this, wxID_ANY);
-    for (int i = 0; i < GAMEPAD_NUMBER; ++i)
-    {
-        // Tabs panels
-        m_pan_tabs[i] = new opPanel(
-            m_tab_gamepad,
-            wxID_ANY,
-            wxDefaultPosition,
-            wxSize(DEFAULT_WIDTH, DEFAULT_HEIGHT));
-
-        // New page creation
-        m_tab_gamepad->AddPage(
-            m_pan_tabs[i],                           // Parent
-            wxString::Format(_("Gamepad %i"), i));
-
-        for (int j = 0; j < BUTTONS_LENGTH; ++j)
-        {
-            // Gamepad buttons
-            m_bt_gamepad[i][j] = new wxButton(
-                m_pan_tabs[i],                         // Parent
-                wxID_HIGHEST + j + 1,                  // ID
-                _T("Undefined"),                       // Label
-                wxPoint(padding[j][2], padding[j][3]), // Position
-                wxSize(padding[j][0], padding[j][1])   // Size
-                );
-        }
-
-        // Set the other buttons labels
-        m_bt_gamepad[i][JoyL_config]->SetLabel(_T("&Left Joystick Config"));
-        m_bt_gamepad[i][JoyR_config]->SetLabel(_T("&Right Joystick Config"));
-        m_bt_gamepad[i][Gamepad_config]->SetLabel(_T("&Gamepad Configuration"));
-        m_bt_gamepad[i][Set_all]->SetLabel(_T("&Set All Buttons"));
-        m_bt_gamepad[i][Cancel]->SetLabel(_T("&Cancel"));
-        m_bt_gamepad[i][Apply]->SetLabel(_T("&Apply"));
-        m_bt_gamepad[i][Ok]->SetLabel(_T("&Ok"));
-
-        // Disable analog button (not yet supported)
-        m_bt_gamepad[i][Analog]->Disable();
-    }
-
-    Bind(wxEVT_BUTTON, &Dialog::OnButtonClicked, this);
+    main_box->Add(m_tab_gamepad);
 
     for (int i = 0; i < GAMEPAD_NUMBER; ++i)
     {
+        create_page(i, m_tab_gamepad);
+
         for (int j = 0; j < NB_IMG; ++j)
         {
             m_pressed[i][j] = false;
         }
     }
+
+    main_box->Add(CreateStdDialogButtonSizer(wxOK | wxCANCEL | wxAPPLY), 0, wxALL | wxEXPAND, 5);
+
+    Bind(wxEVT_BUTTON, &Dialog::OnButtonClicked, this);
+
+    main_box->SetSizeHints(this);
+    SetSizerAndFit(main_box);
 }
 
 void Dialog::InitDialog()
@@ -226,16 +249,21 @@ void Dialog::OnButtonClicked(wxCommandEvent &event)
             break;
 
         case Ok:
+        case wxID_OK - wxID_HIGHEST - 1: // Hack. bt_id subtracts this, and we have the raw ids, so...
             SaveConfig();
             Close();
+            EndModal(wxID_CANCEL);
             break;
 
         case Apply:
+        case wxID_APPLY - wxID_HIGHEST - 1:
             SaveConfig();
             break;
 
         case Cancel:
+        case wxID_CANCEL - wxID_HIGHEST - 1:
             Close();
+            EndModal(wxID_CANCEL);
             break;
 
         default:
@@ -274,7 +302,8 @@ void Dialog::config_key(int pad, int key)
         }
     }
 
-    m_bt_gamepad[pad][key]->SetLabel(KeyName(pad, key, m_simulatedKeys[pad][key]).c_str());
+    m_bt_gamepad[pad][key]->SetLabel(KeyName(m_simulatedKeys[pad][key]).c_str());
+    repopulate();
 }
 
 void Dialog::clear_key(int pad, int key)
@@ -285,23 +314,38 @@ void Dialog::clear_key(int pad, int key)
 
     // erase gamepad entry (keysim map)
     g_conf.keysym_map[pad].erase(keysim);
+    repopulate();
 }
 
-// Set button values
+// Set button values.
+// Needs to be changed to handle keyboard, mouse, *and* gamepads.
 void Dialog::repopulate()
 {
     for (int gamepad_id = 0; gamepad_id < GAMEPAD_NUMBER; ++gamepad_id)
     {
+        // Clear list before repopulating.
+        btn_list[gamepad_id]->DeleteAllItems();
+
         // keyboard/mouse key
         for (const auto &it : g_conf.keysym_map[gamepad_id])
         {
             int keysym = it.first;
             int key = it.second;
+            std::string name = KeyName(keysym);
 
-            m_bt_gamepad[gamepad_id][key]->SetLabel(KeyName(gamepad_id, key, keysym).c_str());
+            m_bt_gamepad[gamepad_id][key]->SetLabel(name.c_str());
 
             m_simulatedKeys[gamepad_id][key] = keysym;
+
+            // We have to insert the entry first with the text for column 0, then add column 1 to it.
+            long itemIndex = btn_list[gamepad_id]->InsertItem(0, wxString(gamePadBtnNames[key]));
+            btn_list[gamepad_id]->SetItem(itemIndex, 1, name.c_str());
+            //fprintf(stderr, "Gamepad %i: Button %s = %s.\n", gamepad_id, gamePadBtnNames[key], name.c_str());
         }
+
+        // Now that we actually have text in the list, resize the columns to fit it.
+        btn_list[gamepad_id]->SetColumnWidth(0, wxLIST_AUTOSIZE);
+        btn_list[gamepad_id]->SetColumnWidth(1, wxLIST_AUTOSIZE);
     }
 }
 
@@ -397,6 +441,7 @@ void DisplayDialog()
 {
     if (g_conf.ftw)
     {
+        // We need all the functionality in *one* plugin!!!
         wxString info("The OnePad GUI is provided to map the keyboard/mouse to the virtual PS2 pad.\n\n"
                       "Gamepads/Joysticks are plug and play. The active gamepad can be selected in the 'Gamepad Configuration' panel.\n\n"
                       "If you prefer to manually map your gamepad, you should use the 'onepad-legacy' plugin instead.");

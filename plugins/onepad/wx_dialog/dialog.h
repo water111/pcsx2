@@ -31,6 +31,7 @@
 #include <wx/rawbmp.h>
 #include <wx/graphics.h>
 #include <wx/timer.h>
+#include <wx/listctrl.h>
 
 #include <string>
 #include <sstream>
@@ -58,15 +59,45 @@ enum gui_buttons {
     Cancel                   // Exit without apply modificatons
 };
 
-#define BUTTONS_LENGTH 32 // numbers of buttons on the gamepad
+#define BUTTONS_LENGTH 29 // numbers of buttons on the gamepad
 #define UPDATE_TIME 5
 #define DEFAULT_WIDTH 1000
-#define DEFAULT_HEIGHT 740
+#define DEFAULT_HEIGHT 700
+
+static const char *gamePadBtnNames[PAD_R_LEFT + 1] = {
+    "L2",
+    "R2",
+    "L1",
+    "R1",
+    "Triangle",
+    "Circle",
+    "Cross",
+    "Square",
+    "Select",
+    "L3",
+    "R3",
+    "Start",
+    "Up",
+    "Right",
+    "Down",
+    "Left",
+    "L Joy Up",
+    "L Joy Right",
+    "L Joy Left",
+    "L Joy Up",
+    "R Joy Up",
+    "R Joy Right",
+    "R Joy Down",
+    "R Joy Left"
+};
 
 class Dialog : public wxDialog
 {
     // Panels
     opPanel *m_pan_tabs[GAMEPAD_NUMBER]; // Gamepad Tabs box
+    wxPanel *m_pan_page[GAMEPAD_NUMBER];
+    // Lists
+    wxListCtrl *btn_list[GAMEPAD_NUMBER];
     // Notebooks
     wxNotebook *m_tab_gamepad; // Joysticks Tabs
     // Buttons
@@ -75,7 +106,7 @@ class Dialog : public wxDialog
     u32 m_simulatedKeys[GAMEPAD_NUMBER][MAX_KEYS];
     // Timer
     wxTimer m_time_update_gui;
-    // Check if the gui must display feddback image
+    // Check if the gui must display feedback image
     bool m_pressed[GAMEPAD_NUMBER][NB_IMG];
 
     // methods
@@ -83,6 +114,7 @@ class Dialog : public wxDialog
     void clear_key(int, int);
     void repopulate();
     void set_tab_img_visible(int gamepad_id, int i, bool visible);
+    void create_page(int i, wxNotebook *m_tab_gamepad);
 
     // Events
     void OnButtonClicked(wxCommandEvent &);
