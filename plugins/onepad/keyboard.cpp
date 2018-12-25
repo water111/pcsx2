@@ -54,7 +54,7 @@ static void AnalyzeKeyEvent(keyEvent &evt)
     int index = -1;
 
     for (int cpad = 0; cpad < GAMEPAD_NUMBER; cpad++) {
-        int tmp_index = get_keyboard_key(cpad, key);
+        int tmp_index = g_conf.k_map[cpad].get_key(key);
         if (tmp_index != -1) {
             pad = cpad;
             index = tmp_index;
@@ -302,4 +302,5 @@ LRESULT WINAPI PADwndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     return TRUE;
 }
+
 #endif

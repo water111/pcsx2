@@ -20,30 +20,7 @@
 #include "dialog.h"
 #include <array>
 
-static std::string KeyName(int keysym)
-{
-    // Mouse
-    if (keysym < 10)
-    {
-        switch (keysym)
-        {
-            case 0:
-                return "";
-            case 1:
-                return "Mouse Left";
-            case 2:
-                return "Mouse Middle";
-            case 3:
-                return "Mouse Right";
-            default: // Use only number for extra button
-                return "Mouse " + std::to_string(keysym);
-        }
-    }
-
-    return std::string(XKeysymToString(keysym));
-}
-
-void Dialog::create_page(int i, wxNotebook *m_tab_gamepad)
+void Dialog::create_page(int pad, wxNotebook *m_gp_notebook)
 {
     /*
      * Define the size and the position of each button :
@@ -93,37 +70,37 @@ void Dialog::create_page(int i, wxNotebook *m_tab_gamepad)
     padding[Set_all]        = { 180, 28, 764, 585 };
 
     // Tabs panels
-    m_pan_page[i] = new wxPanel(
-        m_tab_gamepad,
+    m_notebook_page[pad] = new wxPanel(
+        m_gp_notebook,
         wxID_ANY,
         wxDefaultPosition,
         wxDefaultSize);
 
     // New page creation
-    m_tab_gamepad->AddPage(m_pan_page[i], wxString::Format(_("Gamepad %i"), i));
+    m_gp_notebook->AddPage(m_notebook_page[pad], wxString::Format(_("Gamepad %i"), pad));
 
     wxBoxSizer *note_box = new wxBoxSizer( wxHORIZONTAL );
 
     // Panel for the actual gamepad picture and gui.
-    m_pan_tabs[i] = new opPanel(
-        m_pan_page[i],
+    m_gamepad_panel[pad] = new opPanel(
+        m_notebook_page[pad],
         wxID_ANY,
         wxDefaultPosition,
         wxSize(DEFAULT_WIDTH, DEFAULT_HEIGHT));
 
     // Create a new ListCtrl
-    btn_list[i] = new wxListCtrl(m_pan_page[i], wxID_ANY, wxDefaultPosition, wxSize(150, DEFAULT_HEIGHT), wxLC_REPORT);
+    m_pad_ctrl_list[pad] = new wxListCtrl(m_notebook_page[pad], wxID_ANY, wxDefaultPosition, wxSize(150, DEFAULT_HEIGHT), wxLC_REPORT);
 
     // Set up a list for our controls. Only shows keys at the moment.
     // To do: add buttons below it. Clear all, Delete, and probably move "Set All Buttons" there.
-    btn_list[i]->InsertColumn(0, _T("Input"), wxLIST_FORMAT_LEFT, -1);
-    btn_list[i]->InsertColumn(1, _T("Mapped To"), wxLIST_FORMAT_LEFT, -1);
+    m_pad_ctrl_list[pad]->InsertColumn(0, _T("Input"), wxLIST_FORMAT_LEFT, -1);
+    m_pad_ctrl_list[pad]->InsertColumn(1, _T("Mapped To"), wxLIST_FORMAT_LEFT, -1);
 
     for (int j = 0; j < BUTTONS_LENGTH; ++j)
     {
         // Gamepad buttons
-        m_bt_gamepad[i][j] = new wxButton(
-            m_pan_tabs[i],                         // Parent
+        m_btn_gamepad[pad][j] = new wxButton(
+        m_gamepad_panel[pad],                         // Parent
             wxID_HIGHEST + j + 1,                  // ID
             _T("Undefined"),                       // Label
             wxPoint(padding[j][2], padding[j][3]), // Position
@@ -132,16 +109,16 @@ void Dialog::create_page(int i, wxNotebook *m_tab_gamepad)
     }
 
     // Set the other buttons labels
-    m_bt_gamepad[i][JoyL_config]->SetLabel(_T("&Left Joystick Config"));
-    m_bt_gamepad[i][JoyR_config]->SetLabel(_T("&Right Joystick Config"));
-    m_bt_gamepad[i][Gamepad_config]->SetLabel(_T("&Gamepad Configuration"));
-    m_bt_gamepad[i][Set_all]->SetLabel(_T("&Set All Buttons"));
-    m_bt_gamepad[i][Analog]->Disable();
+    m_btn_gamepad[pad][JoyL_config]->SetLabel(_T("&Left Joystick Config"));
+    m_btn_gamepad[pad][JoyR_config]->SetLabel(_T("&Right Joystick Config"));
+    m_btn_gamepad[pad][Gamepad_config]->SetLabel(_T("&Gamepad Configuration"));
+    m_btn_gamepad[pad][Set_all]->SetLabel(_T("&Set All Buttons"));
+    m_btn_gamepad[pad][Analog]->Disable();
 
-    note_box->Add(btn_list[i], 0, wxALL | wxEXPAND, 5);
-    note_box->Add(m_pan_tabs[i], 0, wxALL | wxEXPAND, 5);
+    note_box->Add(m_pad_ctrl_list[pad], 0, wxALL | wxEXPAND, 5);
+    note_box->Add(m_gamepad_panel[pad], 0, wxALL | wxEXPAND, 5);
 
-    m_pan_page[i]->SetSizer(note_box);
+    m_notebook_page[pad]->SetSizer(note_box);
 }
 
 // Constructor of Dialog
@@ -152,26 +129,18 @@ Dialog::Dialog()
                wxDefaultPosition,                     // Position
                wxDefaultSize /*wxSize(DEFAULT_WIDTH, DEFAULT_HEIGHT)*/, // Width + Length
                // Style
-               wxSYSTEM_MENU |
-                   wxCAPTION |
-                   wxCLOSE_BOX |
-                   wxCLIP_CHILDREN)
+               wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN)
 {
 
     wxBoxSizer *main_box = new wxBoxSizer( wxVERTICAL );
 
     // create a new Notebook
-    m_tab_gamepad = new wxNotebook(this, wxID_ANY);
-    main_box->Add(m_tab_gamepad);
+    m_gp_notebook = new wxNotebook(this, wxID_ANY);
+    main_box->Add(m_gp_notebook);
 
     for (int i = 0; i < GAMEPAD_NUMBER; ++i)
     {
-        create_page(i, m_tab_gamepad);
-
-        for (int j = 0; j < NB_IMG; ++j)
-        {
-            m_pressed[i][j] = false;
-        }
+        create_page(i, m_gp_notebook);
     }
 
     main_box->Add(CreateStdDialogButtonSizer(wxOK | wxCANCEL | wxAPPLY), 0, wxALL | wxEXPAND, 5);
@@ -198,13 +167,13 @@ void Dialog::OnButtonClicked(wxCommandEvent &event)
     // Display a message each time the button is clicked
     wxButton *bt_tmp = (wxButton *)event.GetEventObject(); // get the button object
     int bt_id = bt_tmp->GetId() - wxID_HIGHEST - 1;        // get the real ID
-    int gamepad_id = m_tab_gamepad->GetSelection();        // get the tab ID (equivalent to the gamepad id)
+    int pad = m_gp_notebook->GetSelection();        // get the tab ID (equivalent to the gamepad id)
 
     switch (bt_id)
     {
         case Gamepad_config:
         {
-            GamepadConfiguration gamepad_config(gamepad_id, this);
+            GamepadConfiguration gamepad_config(pad, this);
 
             gamepad_config.InitGamepadConfiguration();
             gamepad_config.ShowModal();
@@ -213,7 +182,7 @@ void Dialog::OnButtonClicked(wxCommandEvent &event)
 
         case JoyL_config:
         {
-            JoystickConfiguration joystick_config(gamepad_id, true, this);
+            JoystickConfiguration joystick_config(pad, true, this);
 
             joystick_config.InitJoystickConfiguration();
             joystick_config.ShowModal();
@@ -222,7 +191,7 @@ void Dialog::OnButtonClicked(wxCommandEvent &event)
 
         case JoyR_config:
         {
-            JoystickConfiguration joystick_config(gamepad_id, false, this);
+            JoystickConfiguration joystick_config(pad, false, this);
 
             joystick_config.InitJoystickConfiguration();
             joystick_config.ShowModal();
@@ -232,17 +201,9 @@ void Dialog::OnButtonClicked(wxCommandEvent &event)
         case Set_all:
             for (int i = 0; i < MAX_KEYS; ++i)
             {
-                bt_tmp = m_bt_gamepad[gamepad_id][i];
-
-                set_tab_img_visible(gamepad_id, i, true);
-                m_pan_tabs[gamepad_id]->Refresh();
-                m_pan_tabs[gamepad_id]->Update();
-
-                config_key(gamepad_id, i);
-
-                set_tab_img_visible(gamepad_id, i, false);
-                m_pan_tabs[gamepad_id]->Refresh();
-                m_pan_tabs[gamepad_id]->Update();
+                set_tab_img_visible(pad, i, true);
+                config_key(pad, i);
+                set_tab_img_visible(pad, i, false);
 
                 usleep(500000); // give enough time to the user to release the button
             }
@@ -270,7 +231,7 @@ void Dialog::OnButtonClicked(wxCommandEvent &event)
             if (bt_id >= 0 && bt_id <= PAD_R_LEFT) // if the button ID is a gamepad button
             {
                 bt_tmp->Disable();
-                config_key(gamepad_id, bt_id);
+                config_key(pad, bt_id);
                 bt_tmp->Enable();
             }
             break;
@@ -281,39 +242,36 @@ void Dialog::OnButtonClicked(wxCommandEvent &event)
 /*********** Methods functions **********/
 /****************************************/
 
+bool Dialog::capture_key(int pad, int key)
+{
+    u32 key_pressed = 0;
+
+    if (PollX11KeyboardMouseEvent(key_pressed))
+    {
+        // special case for keyboard/mouse to handle multiple keys
+        // Note: key_pressed == 0 when ESC is hit to abort the capture
+        if (key_pressed > 0)
+        {
+            g_conf.k_map[pad].set_key(key_pressed, key);
+        }
+        return true;
+    }
+    return false;
+}
+
 void Dialog::config_key(int pad, int key)
 {
     bool captured = false;
-    u32 key_pressed = 0;
 
     while (!captured)
     {
-        if (PollX11KeyboardMouseEvent(key_pressed))
+        if (capture_key(pad, key))
         {
-            // special case for keyboard/mouse to handle multiple keys
-            // Note: key_pressed == 0 when ESC is hit to abort the capture
-            if (key_pressed > 0)
-            {
-                clear_key(pad, key);
-                set_keyboard_key(pad, key_pressed, key);
-                m_simulatedKeys[pad][key] = key_pressed;
-            }
+            m_btn_gamepad[pad][key]->SetLabel(g_conf.k_map[pad].get_name_from_key(key).c_str());
             captured = true;
         }
     }
 
-    m_bt_gamepad[pad][key]->SetLabel(KeyName(m_simulatedKeys[pad][key]).c_str());
-    repopulate();
-}
-
-void Dialog::clear_key(int pad, int key)
-{
-    // Erase the keyboard binded key
-    u32 keysim = m_simulatedKeys[pad][key];
-    m_simulatedKeys[pad][key] = 0;
-
-    // erase gamepad entry (keysim map)
-    g_conf.keysym_map[pad].erase(keysim);
     repopulate();
 }
 
@@ -321,119 +279,43 @@ void Dialog::clear_key(int pad, int key)
 // Needs to be changed to handle keyboard, mouse, *and* gamepads.
 void Dialog::repopulate()
 {
-    for (int gamepad_id = 0; gamepad_id < GAMEPAD_NUMBER; ++gamepad_id)
+    for (int pad = 0; pad < GAMEPAD_NUMBER; ++pad)
     {
         // Clear list before repopulating.
-        btn_list[gamepad_id]->DeleteAllItems();
+        m_pad_ctrl_list[pad]->DeleteAllItems();
 
         // keyboard/mouse key
-        for (const auto &it : g_conf.keysym_map[gamepad_id])
+        for (int key = 0; key < MAX_KEYS; key++)
         {
-            int keysym = it.first;
-            int key = it.second;
-            std::string name = KeyName(keysym);
+            if (g_conf.k_map[pad].key_exists(key))
+            {
+                const std::string name = g_conf.k_map[pad].get_name_from_key(key);
+                m_btn_gamepad[pad][key]->SetLabel(name);
 
-            m_bt_gamepad[gamepad_id][key]->SetLabel(name.c_str());
-
-            m_simulatedKeys[gamepad_id][key] = keysym;
-
-            // We have to insert the entry first with the text for column 0, then add column 1 to it.
-            long itemIndex = btn_list[gamepad_id]->InsertItem(0, wxString(gamePadBtnNames[key]));
-            btn_list[gamepad_id]->SetItem(itemIndex, 1, name.c_str());
-            //fprintf(stderr, "Gamepad %i: Button %s = %s.\n", gamepad_id, gamePadBtnNames[key], name.c_str());
+                long itemIndex = m_pad_ctrl_list[pad]->InsertItem(0, wxString(gamePadBtnNames[key]));
+                m_pad_ctrl_list[pad]->SetItem(itemIndex, 1, wxString(name));
+                //fprintf(stderr, "Gamepad %i: Button %s = %s.\n", pad, gamePadBtnNames[key], name.c_str());
+            }
         }
 
         // Now that we actually have text in the list, resize the columns to fit it.
-        btn_list[gamepad_id]->SetColumnWidth(0, wxLIST_AUTOSIZE);
-        btn_list[gamepad_id]->SetColumnWidth(1, wxLIST_AUTOSIZE);
+        m_pad_ctrl_list[pad]->SetColumnWidth(0, wxLIST_AUTOSIZE);
+        m_pad_ctrl_list[pad]->SetColumnWidth(1, wxLIST_AUTOSIZE);
     }
 }
 
-// We could probably just make a table and avoid the switch statement...
-void Dialog::set_tab_img_visible(int gamepad_id, int i, bool visible)
+void Dialog::set_tab_img_visible(int pad, int i, bool visible)
 {
     if (visible)
     {
-        switch (i)
-        {
-            case PAD_L_UP: // Left joystick (Up) ↑
-                m_pan_tabs[gamepad_id]->ShowImg(img_l_arrow_up);
-                break;
-
-            case PAD_L_RIGHT: // Left joystick (Right) →
-                m_pan_tabs[gamepad_id]->ShowImg(img_l_arrow_right);
-                break;
-
-            case PAD_L_DOWN: // Left joystick (Down) ↓
-                m_pan_tabs[gamepad_id]->ShowImg(img_l_arrow_bottom);
-                break;
-
-            case PAD_L_LEFT: // Left joystick (Left) ←
-                m_pan_tabs[gamepad_id]->ShowImg(img_l_arrow_left);
-                break;
-
-            case PAD_R_UP: // Right joystick (Up) ↑
-                m_pan_tabs[gamepad_id]->ShowImg(img_r_arrow_up);
-                break;
-
-            case PAD_R_RIGHT: // Right joystick (Right) →
-                m_pan_tabs[gamepad_id]->ShowImg(img_r_arrow_right);
-                break;
-
-            case PAD_R_DOWN: // Right joystick (Down) ↓
-                m_pan_tabs[gamepad_id]->ShowImg(img_r_arrow_bottom);
-                break;
-
-            case PAD_R_LEFT: // Right joystick (Left) ←
-                m_pan_tabs[gamepad_id]->ShowImg(img_r_arrow_left);
-                break;
-
-            default:
-                m_pan_tabs[gamepad_id]->ShowImg(i);
-                break;
-        }
+        m_gamepad_panel[pad]->ShowImg(gamePadimages[i]);
     }
     else
     {
-        switch (i)
-        {
-            case PAD_L_UP: // Left joystick (Up) ↑
-                m_pan_tabs[gamepad_id]->HideImg(img_l_arrow_up);
-                break;
-
-            case PAD_L_RIGHT: // Left joystick (Right) →
-                m_pan_tabs[gamepad_id]->HideImg(img_l_arrow_right);
-                break;
-
-            case PAD_L_DOWN: // Left joystick (Down) ↓
-                m_pan_tabs[gamepad_id]->HideImg(img_l_arrow_bottom);
-                break;
-
-            case PAD_L_LEFT: // Left joystick (Left) ←
-                m_pan_tabs[gamepad_id]->HideImg(img_l_arrow_left);
-                break;
-
-            case PAD_R_UP: // Right joystick (Up) ↑
-                m_pan_tabs[gamepad_id]->HideImg(img_r_arrow_up);
-                break;
-
-            case PAD_R_RIGHT: // Right joystick (Right) →
-                m_pan_tabs[gamepad_id]->HideImg(img_r_arrow_right);
-                break;
-
-            case PAD_R_DOWN: // Right joystick (Down) ↓
-                m_pan_tabs[gamepad_id]->HideImg(img_r_arrow_bottom);
-                break;
-
-            case PAD_R_LEFT: // Right joystick (Left) ←
-                m_pan_tabs[gamepad_id]->HideImg(img_r_arrow_left);
-                break;
-
-            default:
-                m_pan_tabs[gamepad_id]->HideImg(i);
-                break;
-        }
+        m_gamepad_panel[pad]->HideImg(gamePadimages[i]);
     }
+    m_gamepad_panel[pad]->Refresh();
+    m_gamepad_panel[pad]->Update();
 }
 
 // Main

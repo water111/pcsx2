@@ -23,9 +23,119 @@
 #include <string.h> // for memset
 #define MAX_KEYS 24
 
-extern void set_keyboard_key(int pad, int keysym, int index);
-extern int get_keyboard_key(int pad, int keysym);
 extern bool IsAnalogKey(int index);
+
+class KeyMap
+{
+    private:
+        std::map<u32, u32> keysym_map;
+
+        // Contains all simulated keys
+        std::array<u32, MAX_KEYS> m_simulatedKeys;
+
+    public:
+        KeyMap ()
+        {
+            clear();
+        }
+
+        void clear()
+        {
+            keysym_map.clear();
+            for (int i = 0; i < MAX_KEYS; i++)
+            {
+                m_simulatedKeys[i] = 0;
+            }
+        }
+
+        void clear_key(int key)
+        {
+            // Erase the keyboard binded key
+            u32 keysim = m_simulatedKeys[key];
+            m_simulatedKeys[key] = 0;
+
+            // erase gamepad entry (keysim map)
+            keysym_map.erase(keysim);
+        }
+
+        __forceinline void set_key(int keysym, int index)
+        {
+            clear_key(index);
+            keysym_map[keysym] = index;
+            m_simulatedKeys[index] = keysym;
+        }
+
+        __forceinline int get_key(int keysym)
+        {
+            // You must use find instead of []
+            // [] will create an element if the key does not exist and return 0
+            std::map<u32, u32>::iterator it = keysym_map.find(keysym);
+            if (it != keysym_map.end())
+                return it->second;
+            else
+                return -1;
+        }
+
+        __forceinline bool key_exists(int key)
+        {
+            return (m_simulatedKeys[key] > 0);
+        }
+
+        __forceinline u32 get_sym(int key)
+        {
+            return m_simulatedKeys[key];
+        }
+
+        __forceinline void set_defaults()
+        {
+            clear();
+#if defined(__unix__)
+            set_key(XK_a, PAD_L2);
+            set_key(XK_semicolon, PAD_R2);
+            set_key(XK_w, PAD_L1);
+            set_key(XK_p, PAD_R1);
+            set_key(XK_i, PAD_TRIANGLE);
+            set_key(XK_l, PAD_CIRCLE);
+            set_key(XK_k, PAD_CROSS);
+            set_key(XK_j, PAD_SQUARE);
+            set_key(XK_v, PAD_SELECT);
+            set_key(XK_n, PAD_START);
+            set_key(XK_e, PAD_UP);
+            set_key(XK_f, PAD_RIGHT);
+            set_key(XK_d, PAD_DOWN);
+            set_key(XK_s, PAD_LEFT);
+#else
+#endif
+        }
+
+        std::string get_name_from_sym(int keysym)
+        {
+            // Mouse
+            if (keysym < 10)
+            {
+                switch (keysym)
+                {
+                    case 0:
+                        return "";
+                    case 1:
+                        return "Mouse Left";
+                    case 2:
+                        return "Mouse Middle";
+                    case 3:
+                        return "Mouse Right";
+                    default: // Use only number for extra button
+                        return "Mouse " + std::to_string(keysym);
+                }
+            }
+
+            return std::string(XKeysymToString(keysym));
+        }
+
+        std::string get_name_from_key(int key)
+        {
+            return get_name_from_sym(get_sym(key));
+        }
+};
 
 class PADconf
 {
@@ -51,7 +161,7 @@ public:
 
     u32 log;
     u32 ftw;
-    std::map<u32, u32> keysym_map[GAMEPAD_NUMBER];
+    KeyMap k_map[GAMEPAD_NUMBER];
     std::array<size_t, GAMEPAD_NUMBER> unique_id;
     std::vector<std::string> sdl2_mapping;
 
@@ -63,9 +173,16 @@ public:
         ftw = 1;
         packed_options = 0;
         ff_intensity = 0x7FFF; // set it at max value by default
+<<<<<<< HEAD
         sensibility = 100;
         for (int pad = 0; pad < GAMEPAD_NUMBER; pad++) {
             keysym_map[pad].clear();
+=======
+        sensibility = 500;
+        for (int pad = 0; pad < GAMEPAD_NUMBER; pad++)
+        {
+            k_map[pad].clear();
+>>>>>>> onepad: Cleanup, refactoring, setup for things to come. I'd like the keyboard code to be more separate from the dialog code so the dialog can encompass more than just the keyboard more easily.
         }
         unique_id.fill(0);
         sdl2_mapping.clear();
@@ -86,7 +203,7 @@ public:
     }
 
     /**
-	 * Return (a copy of) private memner ff_instensity
+	 * Return (a copy of) private member ff_intensity
 	 **/
     u32 get_ff_intensity()
     {
@@ -94,12 +211,13 @@ public:
     }
 
     /**
-	 * Set intensity while checking that the new value is within
-	 * valid range, more than 0x7FFF will cause pad not to rumble(and less than 0 is obviously bad)
+	 * Set intensity while checking that the new value is within valid range,
+	 * more than 0x7FFF will cause pad not to rumble, and less than 0 is obviously bad.
 	 **/
     void set_ff_intensity(u32 new_intensity)
     {
-        if (new_intensity <= 0x7FFF) {
+        if (new_intensity <= 0x7FFF)
+        {
             ff_intensity = new_intensity;
         }
     }
@@ -111,7 +229,11 @@ public:
 	 **/
     void set_sensibility(u32 new_sensibility)
     {
+<<<<<<< HEAD
         if (new_sensibility > 0)
+=======
+        if (sensibility > 0)
+>>>>>>> onepad: Cleanup, refactoring, setup for things to come. I'd like the keyboard code to be more separate from the dialog code so the dialog can encompass more than just the keyboard more easily.
         {
             sensibility = new_sensibility;
         }

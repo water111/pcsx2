@@ -29,20 +29,7 @@ extern std::string s_strIniPath;
 
 void DefaultKeyboardValues()
 {
-    set_keyboard_key(0, XK_a, PAD_L2);
-    set_keyboard_key(0, XK_semicolon, PAD_R2);
-    set_keyboard_key(0, XK_w, PAD_L1);
-    set_keyboard_key(0, XK_p, PAD_R1);
-    set_keyboard_key(0, XK_i, PAD_TRIANGLE);
-    set_keyboard_key(0, XK_l, PAD_CIRCLE);
-    set_keyboard_key(0, XK_k, PAD_CROSS);
-    set_keyboard_key(0, XK_j, PAD_SQUARE);
-    set_keyboard_key(0, XK_v, PAD_SELECT);
-    set_keyboard_key(0, XK_n, PAD_START);
-    set_keyboard_key(0, XK_e, PAD_UP);
-    set_keyboard_key(0, XK_f, PAD_RIGHT);
-    set_keyboard_key(0, XK_d, PAD_DOWN);
-    set_keyboard_key(0, XK_s, PAD_LEFT);
+    g_conf.k_map[0].set_defaults();
 }
 
 void SaveConfig()
@@ -65,8 +52,9 @@ void SaveConfig()
     fprintf(f, "uid[1] = %zu\n", g_conf.get_joy_uid(1));
 
     for (int pad = 0; pad < GAMEPAD_NUMBER; pad++)
-        for (auto const &it : g_conf.keysym_map[pad])
-            fprintf(f, "PAD %d:KEYSYM 0x%x = %d\n", pad, it.first, it.second);
+        for (int key = 0; key < MAX_KEYS; key++)
+            if (g_conf.k_map[pad].key_exists(key))
+                fprintf(f, "PAD %d:KEYSYM 0x%x = %d\n", pad, g_conf.k_map[pad].get_sym(key), key);
 
     for (auto const &it : g_conf.sdl2_mapping)
         fprintf(f, "SDL2 = %s\n", it.c_str());
@@ -116,7 +104,7 @@ void LoadConfig()
     u32 keysym;
     u32 index;
     while (fscanf(f, "PAD %u:KEYSYM 0x%x = %u\n", &pad, &keysym, &index) == 3) {
-        set_keyboard_key(pad & 1, keysym, index);
+        g_conf.k_map[pad & 1].set_key(keysym, index);
         if (pad == 0)
             have_user_setting = true;
     }

@@ -115,15 +115,9 @@ JoystickInfo::~JoystickInfo()
     }
 }
 
-JoystickInfo::JoystickInfo(int id)
-    : GamePad()
-    , m_controller(nullptr)
-    , m_haptic(nullptr)
-    , m_unique_id(0)
+void JoystickInfo::SetDefaults()
 {
-    SDL_Joystick *joy = nullptr;
-    m_effects_id.fill(-1);
-    // Values are hardcoded currently but it could be later extended to allow remapping of the buttons
+    // Values are hardcoded currently but it could be later extended to allow remapping of the buttons.
     m_pad_to_sdl[PAD_L2] = SDL_CONTROLLER_AXIS_TRIGGERLEFT;
     m_pad_to_sdl[PAD_R2] = SDL_CONTROLLER_AXIS_TRIGGERRIGHT;
     m_pad_to_sdl[PAD_L1] = SDL_CONTROLLER_BUTTON_LEFTSHOULDER;
@@ -148,6 +142,17 @@ JoystickInfo::JoystickInfo(int id)
     m_pad_to_sdl[PAD_R_RIGHT] = SDL_CONTROLLER_AXIS_RIGHTX;
     m_pad_to_sdl[PAD_R_DOWN] = SDL_CONTROLLER_AXIS_RIGHTY;
     m_pad_to_sdl[PAD_R_LEFT] = SDL_CONTROLLER_AXIS_RIGHTX;
+}
+
+JoystickInfo::JoystickInfo(int id)
+    : GamePad()
+    , m_controller(nullptr)
+    , m_haptic(nullptr)
+    , m_unique_id(0)
+{
+    SDL_Joystick *joy = nullptr;
+    m_effects_id.fill(-1);
+    SetDefaults();
 
     if (SDL_IsGameController(id)) {
         m_controller = SDL_GameControllerOpen(id);
@@ -252,7 +257,7 @@ bool JoystickInfo::TestForce(float strength = 0.60)
 
     SDL_HapticRumbleInit(m_haptic);
 
-    // Make the haptic pad rumble 60% strength for half a second, shoudld be enough for user to see if it works or not
+    // Make the haptic pad rumble 60% strength for half a second, should be enough for user to see if it works or not
     if (SDL_HapticRumblePlay(m_haptic, strength, 400) != 0) {
         fprintf(stderr, "ERROR: Rumble is not working! %s\n", SDL_GetError());
         return false;

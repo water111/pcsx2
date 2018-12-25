@@ -64,7 +64,7 @@ enum gui_buttons {
 #define DEFAULT_WIDTH 1000
 #define DEFAULT_HEIGHT 700
 
-static const char *gamePadBtnNames[PAD_R_LEFT + 1] = {
+static const char *gamePadBtnNames[PAD_R_LEFT + 1] [[gnu::unused]] = {
     "L2",
     "R2",
     "L1",
@@ -91,30 +91,53 @@ static const char *gamePadBtnNames[PAD_R_LEFT + 1] = {
     "R Joy Left"
 };
 
+static const gui_img gamePadimages[PAD_R_LEFT + 1] [[gnu::unused]] = {
+    img_l2,   // L2 button
+    img_r2,       // R2 button
+    img_l1,       // L1 button
+    img_r1,       // R1 button
+    img_triangle, // Triangle button ▲
+    img_circle,   // Circle button ●
+    img_cross,    // Cross button ✖
+    img_square,   // Square button ■
+    img_select,   // Select button
+    img_l3,       // Left joystick button (L3)
+    img_r3,       // Right joystick button (R3)
+    img_start,    // Start button
+    img_dp_up,       // Directional pad ↑
+    img_dp_right,    // Directional pad →
+    img_dp_bottom,     // Directional pad ↓
+    img_dp_left,     // Directional pad ←
+    img_l_arrow_up,     // Left joystick (Up) ↑
+    img_l_arrow_right,  // Left joystick (Right) →
+    img_l_arrow_bottom,   // Left joystick (Down) ↓
+    img_l_arrow_left,   // Left joystick (Left) ←
+    img_r_arrow_up,     // Right joystick (Up) ↑
+    img_r_arrow_right,  // Right joystick (Right) →
+    img_r_arrow_bottom,   // Right joystick (Down) ↓
+    img_r_arrow_left    // Right joystick (Left) ←
+};
+
 class Dialog : public wxDialog
 {
     // Panels
-    opPanel *m_pan_tabs[GAMEPAD_NUMBER]; // Gamepad Tabs box
-    wxPanel *m_pan_page[GAMEPAD_NUMBER];
+    opPanel *m_gamepad_panel[GAMEPAD_NUMBER]; // Gamepad Tabs box
+    wxPanel *m_notebook_page[GAMEPAD_NUMBER];
     // Lists
-    wxListCtrl *btn_list[GAMEPAD_NUMBER];
+    wxListCtrl *m_pad_ctrl_list[GAMEPAD_NUMBER];
     // Notebooks
-    wxNotebook *m_tab_gamepad; // Joysticks Tabs
+    wxNotebook *m_gp_notebook; // Joysticks Tabs
     // Buttons
-    wxButton *m_bt_gamepad[GAMEPAD_NUMBER][BUTTONS_LENGTH]; // Joystick button use to modify the button mapping
-    // Contain all simulated key
-    u32 m_simulatedKeys[GAMEPAD_NUMBER][MAX_KEYS];
+    wxButton *m_btn_gamepad[GAMEPAD_NUMBER][BUTTONS_LENGTH]; // Joystick button use to modify the button mapping
     // Timer
     wxTimer m_time_update_gui;
-    // Check if the gui must display feedback image
-    bool m_pressed[GAMEPAD_NUMBER][NB_IMG];
 
     // methods
     void config_key(int, int);
-    void clear_key(int, int);
+    bool capture_key(int pad, int key);
     void repopulate();
-    void set_tab_img_visible(int gamepad_id, int i, bool visible);
-    void create_page(int i, wxNotebook *m_tab_gamepad);
+    void set_tab_img_visible(int pad, int i, bool visible);
+    void create_page(int i, wxNotebook *m_gp_notebook);
 
     // Events
     void OnButtonClicked(wxCommandEvent &);

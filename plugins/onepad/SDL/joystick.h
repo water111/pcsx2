@@ -38,21 +38,16 @@ public:
     JoystickInfo(const JoystickInfo &) = delete;            // copy constructor
     JoystickInfo &operator=(const JoystickInfo &) = delete; // assignment
 
-
     // opens handles to all possible joysticks
     static void EnumerateJoysticks(std::vector<std::unique_ptr<GamePad>> &vjoysticks);
 
     void Rumble(unsigned type, unsigned pad) override;
-
     bool TestForce(float) override;
-
     const char *GetName() final;
-
     int GetInput(gamePadValues input) final;
-
     void UpdateGamePadState() final;
-
     size_t GetUniqueIdentifier() final;
+    void SetDefaults();
 
 private:
     SDL_GameController *m_controller;
