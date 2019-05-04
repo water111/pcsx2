@@ -173,16 +173,10 @@ public:
         ftw = 1;
         packed_options = 0;
         ff_intensity = 0x7FFF; // set it at max value by default
-<<<<<<< HEAD
-        sensibility = 100;
-        for (int pad = 0; pad < GAMEPAD_NUMBER; pad++) {
-            keysym_map[pad].clear();
-=======
         sensibility = 500;
         for (int pad = 0; pad < GAMEPAD_NUMBER; pad++)
         {
             k_map[pad].clear();
->>>>>>> onepad: Cleanup, refactoring, setup for things to come. I'd like the keyboard code to be more separate from the dialog code so the dialog can encompass more than just the keyboard more easily.
         }
         unique_id.fill(0);
         sdl2_mapping.clear();
@@ -229,11 +223,7 @@ public:
 	 **/
     void set_sensibility(u32 new_sensibility)
     {
-<<<<<<< HEAD
         if (new_sensibility > 0)
-=======
-        if (sensibility > 0)
->>>>>>> onepad: Cleanup, refactoring, setup for things to come. I'd like the keyboard code to be more separate from the dialog code so the dialog can encompass more than just the keyboard more easily.
         {
             sensibility = new_sensibility;
         }
